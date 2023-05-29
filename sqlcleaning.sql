@@ -1,12 +1,18 @@
+--Data Cleaning Using SQL
+
 SELECT *
 FROM dbo.nashville_housing
+---------------------
 
+--Standardize date format -- 
 
 SELECT SaleDate, CONVERT (Date, SaleDate)
 FROM dbo.nashville_housing
 
 UPDATE nashville_housing
 SET SaleDate = CONVERT (Date, SaleDate)
+
+--if it doesnt update properly
 
 ALTER TABLE nashville_housing
 Add SaleDateConverted Date; 
@@ -16,6 +22,9 @@ SET SaleDateConverted = CONVERT (Date, SaleDate)
 
 SELECT SaleDateConverted
 FROM dbo.nashville_housing
+
+---------------------------------------
+--Populate property address data
 
 SELECT *
 FROM dbo.nashville_housing
@@ -38,11 +47,13 @@ on a.ParcelID = b.ParcelID
 and a.[UniqueID ] <> b.[UniqueID ]
 WHERE a.PropertyAddress is null
 
+---------------------------------------
+
 select *
 from nashville_housing
 --where PropertyAddress is null
 
---break out address (add, city, state)
+--break out address into single ind column (address, city, state)
 
 select
 SUBSTRING (PropertyAddress, 1, CHARINDEX (',', PropertyAddress) -1) AS Address
@@ -88,6 +99,9 @@ SET owner_state_split = parsename (replace (OwnerAddress, ',','.'),1)
 select *
 from nashville_housing
 
+-------------------------------------------------------
+--Change Y and N to Yes and No in SoldAsVacant
+
 select Distinct (SoldAsVacant), count (SoldAsVacant)
 from nashville_housing
 group by SoldAsVacant
@@ -106,3 +120,48 @@ set SoldAsVacant = case when SoldAsVacant = 'N' then 'No'
  when SoldAsVacant = 'Y' then 'Yes'
  else SoldAsVacant
  end
+----------------------------------
+
+-- Remove Duplicates
+
+WITH RowNumCTE AS(
+Select *,
+	ROW_NUMBER() OVER (
+	PARTITION BY ParcelID,
+				 PropertyAddress,
+				 SalePrice,
+				 SaleDate,
+				 LegalReference
+				 ORDER BY
+					UniqueID
+					) row_num
+
+From nashville_housing
+--order by ParcelID
+)
+DELETE
+From RowNumCTE
+Where row_num > 1
+Order by PropertyAddress
+
+
+
+Select *
+From nashville_housing
+
+
+
+
+---------------------------------------------------------------------------------------------------------
+
+-- Delete Unused Columns
+
+
+
+Select *
+From nashville_housing
+
+
+ALTER TABLE nashville_housing
+DROP COLUMN OwnerAddress, TaxDistrict, PropertyAddress, SaleDate
+
